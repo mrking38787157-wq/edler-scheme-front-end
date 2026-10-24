@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Find government schemes by age, state, and category.">
+  <title>Government Scheme Finder</title>
+  <style>
+    :root {
+      --ink: #17231f;
+      --muted: #63716a;
+      --paper: #f6f7f1;
+      --surface: #ffffff;
+      --green: #176b4b;
+      --green-dark: #105139;
+      --green-light: #e8f3ec;
+      --orange: #d77b37;
+      --line: #dce4dc;
+      --focus: #f2a660;
+      --radius: 12px;
+      font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+      color: var(--ink);
+      background: var(--paper);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background-color: var(--paper);
+      background-image: radial-gradient(#d9e7db 0.7px, transparent 0.7px);
+      background-size: 18px 18px;
+    }
+
+    button, select { font: inherit; }
+
+    button:focus-visible, select:focus-visible {
+      outline: 3px solid var(--focus);
+      outline-offset: 3px;
+    }
+
+    .page-shell {
+      width: min(100% - 32px, 760px);
+      margin: 0 auto;
+      padding: 30px 0 48px;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 18px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--green-dark);
+      font-size: 0.9rem;
+      font-weight: 800;
+    }
+
+    .brand-mark {
+      display: grid;
+      width: 38px;
+      height: 38px;
+      place-items: center;
+      border: 1px solid #c9ddce;
+      border-radius: 10px;
+      background: var(--green-light);
+      font-size: 1.2rem;
+    }
+
+    .language-switch {
+      display: inline-flex;
+      gap: 3px;
+      padding: 4px;
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      background: var(--surface);
+    }
+
+    .language-switch button {
+      min-height: 34px;
+      padding: 0 11px;
+      border: 0;
+      border-radius: 6px;
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      font-weight: 700;
+    }
+
+    .language-switch button[aria-pressed="true"] {
+      background: var(--green);
+      color: white;
+    }
+
+    .intro {
+      position: relative;
+      overflow: hidden;
+      padding: clamp(24px, 6vw, 42px);
+      border: 1px solid #d6e3d8;
+      border-radius: 16px;
+      background: linear-gradient(115deg, #fff 0%, #f0f7ef 100%);
+    }
+
+    .intro::after {
+      position: absolute;
+      right: 36px;
+      bottom: -43px;
+      width: 155px;
+      height: 155px;
+      border: 22px solid rgba(23, 107, 75, 0.08);
+      border-radius: 50%;
+      content: "";
+      pointer-events: none;
+    }
+
+    .eyebrow {
+      margin: 0 0 9px;
+      color: var(--orange);
+      font-size: 0.78rem;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      max-width: 560px;
+      margin: 0;
+      color: var(--green-dark);
+      font-size: clamp(2rem, 7vw, 3rem);
+      line-height: 1.08;
+    }
+
+    .intro-copy {
+      max-width: 480px;
+      margin: 13px 0 0;
+      color: var(--muted);
+      font-size: 1rem;
+      line-height: 1.6;
+    }
+
+    .finder {
+      margin-top: 18px;
+      padding: clamp(20px, 5vw, 34px);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: var(--surface);
+      box-shadow: 0 12px 34px rgba(30, 57, 41, 0.06);
+    }
+
+    .field { margin-bottom: 22px; }
+
+    .field label, .section-label {
+      display: block;
+      margin-bottom: 9px;
+      font-size: 0.95rem;
+      font-weight: 800;
+    }
+
+    .select-wrap { position: relative; }
+
+    .select-wrap::after {
+      position: absolute;
+      top: 50%;
+      right: 16px;
+      color: var(--green);
+      content: "▾";
+      pointer-events: none;
+      transform: translateY(-55%);
+    }
+
+    select {
+      width: 100%;
+      min-height: 50px;
+      padding: 0 42px 0 14px;
+      appearance: none;
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      background: #fbfcfa;
+      color: var(--ink);
+      cursor: pointer;
+    }
+
+    .category-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .category-button {
+      display: flex;
+      min-height: 54px;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 13px;
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      background: #fbfcfa;
+      color: var(--ink);
+      cursor: pointer;
+      text-align: left;
+      transition: border-color 140ms ease, background-color 140ms ease, transform 140ms ease;
+    }
+
+    .category-button:hover { transform: translateY(-1px); }
+
+    .category-button[aria-pressed="true"] {
+      border-color: var(--green);
+      background: var(--green-light);
+      box-shadow: inset 0 0 0 1px var(--green);
+    }
+
+    .category-icon { font-size: 1.2rem; }
+
+    .find-button {
+      width: 100%;
+      min-height: 54px;
+      margin-top: 24px;
+      border: 0;
+      border-radius: 9px;
+      background: var(--green);
+      color: white;
+      cursor: pointer;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      transition: background-color 140ms ease, transform 140ms ease;
+    }
+
+    .find-button:hover {
+      background: var(--green-dark);
+      transform: translateY(-1px);
+    }
+
+    .results { margin-top: 24px; }
+
+    .results:empty { display: none; }
+
+    .results-heading {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .results-heading h2 { margin: 0; font-size: 1.25rem; }
+
+    .result-count { color: var(--muted); font-size: 0.9rem; }
+
+    .scheme-list { display: grid; gap: 10px; }
+
+    .scheme {
+      padding: 16px;
+      border: 1px solid var(--line);
+      border-left: 4px solid var(--green);
+      border-radius: 9px;
+      background: #fff;
+    }
+
+    .scheme h3 { margin: 0 0 6px; font-size: 1rem; }
+
+    .scheme p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.92rem;
+      line-height: 1.5;
+    }
+
+    .scheme-category {
+      display: inline-block;
+      margin-top: 10px;
+      color: var(--green-dark);
+      font-size: 0.78rem;
+      font-weight: 800;
+    }
+
+    .notice {
+      margin: 14px 0 0;
+      color: var(--muted);
+      font-size: 0.82rem;
+      line-height: 1.5;
+    }
+
+    .footer {
+      padding: 18px 4px 0;
+      color: var(--muted);
+      font-size: 0.82rem;
+      line-height: 1.5;
+      text-align: center;
+    }
+
+    @media (max-width: 480px) {
+      .page-shell { width: min(100% - 20px, 760px); padding-top: 16px; }
+      .brand { font-size: 0.78rem; }
+      .brand-mark { width: 34px; height: 34px; }
+      .language-switch button { padding: 0 8px; font-size: 0.85rem; }
+      .intro::after { right: -48px; }
+      .category-grid { gap: 8px; }
+      .category-button { padding: 9px; font-size: 0.88rem; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; transition-duration: 0.01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <main class="page-shell">
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true">✦</span>
+        <span data-text="brand">Government Scheme Finder</span>
+      </div>
+      <div class="language-switch" aria-label="Choose language">
+        <button type="button" data-language="kn" aria-pressed="false">ಕನ್ನಡ</button>
+        <button type="button" data-language="en" aria-pressed="true">English</button>
+      </div>
+    </header>
+
+    <section class="intro" aria-labelledby="page-title">
+      <p class="eyebrow" data-text="eyebrow">Your benefits, made easier</p>
+      <h1 id="page-title" data-text="title">Find Government Schemes Easily</h1>
+      <p class="intro-copy" data-text="intro">Choose a few details to see government schemes that may be relevant to you.</p>
+    </section>
+
+    <form class="finder" id="scheme-form">
+      <div class="field">
+        <label for="age" data-text="ageLabel">Select your age</label>
+        <div class="select-wrap">
+          <select id="age" name="age">
+            <option value="0-17">Under 18</option>
+            <option value="18-39">18–39 years</option>
+            <option value="40-59">40–59 years</option>
+            <option value="60-69" selected>60–69 years</option>
+            <option value="70+">70 years and above</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="state" data-text="stateLabel">Select your state</label>
+        <div class="select-wrap">
+          <select id="state" name="state">
+            <option value="Karnataka" selected>Karnataka</option>
+            <option value="Andhra Pradesh">Andhra Pradesh</option>
+            <option value="Goa">Goa</option>
+            <option value="Kerala">Kerala</option>
+            <option value="Maharashtra">Maharashtra</option>
+            <option value="Tamil Nadu">Tamil Nadu</option>
+            <option value="Telangana">Telangana</option>
+            <option value="Other">Other state or union territory</option>
+          </select>
+        </div>
+      </div>
+
+      <fieldset style="margin: 0; padding: 0; border: 0;">
+        <legend class="section-label" data-text="categoryLabel">Select a scheme category</legend>
+        <div class="category-grid">
+          <button class="category-button" type="button" data-category="pension" aria-pressed="false">
+            <span class="category-icon" aria-hidden="true">💰</span><span data-text="pension">Pension</span>
+          </button>
+          <button class="category-button" type="button" data-category="healthcare" aria-pressed="false">
+            <span class="category-icon" aria-hidden="true">🏥</span><span data-text="healthcare">Healthcare</span>
+          </button>
+          <button class="category-button" type="button" data-category="housing" aria-pressed="false">
+            <span class="category-icon" aria-hidden="true">🏠</span><span data-text="housing">Housing</span>
+          </button>
+          <button class="category-button" type="button" data-category="food" aria-pressed="false">
+            <span class="category-icon" aria-hidden="true">🍚</span><span data-text="food">Food support</span>
+          </button>
+        </div>
+      </fieldset>
+
+      <button class="find-button" type="submit" data-text="findButton">FIND MY SCHEMES</button>
+      <section class="results" id="results" aria-live="polite" aria-atomic="true"></section>
+    </form>
+
+    <footer class="footer" data-text="footer">This finder is an educational demo. Eligibility and benefits can change; confirm details with the official government department before applying.</footer>
+  </main>
+
+  <script>
+    // Sample scheme data for this beginner-friendly demo.
+    // Always check the official scheme website for current rules and eligibility.
+    const schemes = [
+      {
+        name: "Indira Gandhi National Old Age Pension Scheme (IGNOAPS)",
+        category: "pension",
+        ages: ["60-69", "70+"],
+        states: ["all"],
+        description: "A social assistance pension for eligible older people. Income and other eligibility conditions apply."
+      },
+      {
+        name: "Ayushman Bharat – Pradhan Mantri Jan Arogya Yojana (PM-JAY)",
+        category: "healthcare",
+        ages: ["0-17", "18-39", "40-59", "60-69", "70+"],
+        states: ["all"],
+        description: "Health coverage for eligible families. Eligibility is based on scheme rules, not age alone."
+      },
+      {
+        name: "Pradhan Mantri Awas Yojana (PMAY)",
+        category: "housing",
+        ages: ["18-39", "40-59", "60-69", "70+"],
+        states: ["all"],
+        description: "Housing assistance through rural or urban components for eligible applicants. Conditions vary by component."
+      },
+      {
+        name: "National Food Security Act (NFSA) ration benefits",
+        category: "food",
+        ages: ["0-17", "18-39", "40-59", "60-69", "70+"],
+        states: ["all"],
+        description: "Subsidized food grains for eligible households through the public distribution system."
+      },
+      {
+        name: "Sandhya Suraksha Yojane (Karnataka)",
+        category: "pension",
+        ages: ["60-69", "70+"],
+        states: ["Karnataka"],
+        description: "A Karnataka pension scheme for eligible senior citizens. Verify the current age, income, and benefit rules."
+      }
+    ];
+
+    const translations = {
+      en: {
+        brand: "Government Scheme Finder",
+        eyebrow: "Your benefits, made easier",
+        title: "Find Government Schemes Easily",
+        intro: "Choose a few details to see government schemes that may be relevant to you.",
+        ageLabel: "Select your age",
+        stateLabel: "Select your state",
+        categoryLabel: "Select a scheme category",
+        pension: "Pension",
+        healthcare: "Healthcare",
+        housing: "Housing",
+        food: "Food support",
+        findButton: "FIND MY SCHEMES",
+        footer: "This finder is an educational demo. Eligibility and benefits can change; confirm details with the official government department before applying.",
+        results: "Possible schemes",
+        match: "possible match",
+        matches: "possible matches",
+        none: "No sample schemes match those choices. Try another category or state.",
+        allCategories: "All categories",
+        notice: "These are sample results, not an eligibility decision. Contact the official department or portal to confirm requirements and apply.",
+        categoryNames: { pension: "Pension", healthcare: "Healthcare", housing: "Housing", food: "Food support" }
+      },
+      kn: {
+        brand: "ಸರ್ಕಾರಿ ಯೋಜನೆಗಳ ಹುಡುಕಾಟ",
+        eyebrow: "ನಿಮ್ಮ ಸೌಲಭ್ಯಗಳನ್ನು ಸುಲಭವಾಗಿ ತಿಳಿಯಿರಿ",
+        title: "ಸರ್ಕಾರಿ ಯೋಜನೆಗಳನ್ನು ಸುಲಭವಾಗಿ ಹುಡುಕಿ",
+        intro: "ನಿಮಗೆ ಸಂಬಂಧಿಸಬಹುದಾದ ಸರ್ಕಾರಿ ಯೋಜನೆಗಳನ್ನು ನೋಡಲು ಕೆಲವು ವಿವರಗಳನ್ನು ಆಯ್ಕೆಮಾಡಿ.",
+        ageLabel: "ನಿಮ್ಮ ವಯಸ್ಸನ್ನು ಆಯ್ಕೆಮಾಡಿ",
+        stateLabel: "ನಿಮ್ಮ ರಾಜ್ಯವನ್ನು ಆಯ್ಕೆಮಾಡಿ",
+        categoryLabel: "ಯೋಜನೆಯ ವರ್ಗವನ್ನು ಆಯ್ಕೆಮಾಡಿ",
+        pension: "ಪಿಂಚಣಿ",
+        healthcare: "ಆರೋಗ್ಯ ಸೇವೆ",
+        housing: "ವಸತಿ",
+        food: "ಆಹಾರ ಸಹಾಯ",
+        findButton: "ಯೋಜನೆಗಳನ್ನು ಹುಡುಕಿ",
+        footer: "ಇದು ಮಾಹಿತಿ ಉದ್ದೇಶದ ಮಾದರಿ ಮಾತ್ರ. ಅರ್ಹತೆ ಮತ್ತು ಸೌಲಭ್ಯಗಳು ಬದಲಾಗಬಹುದು; ಅರ್ಜಿ ಸಲ್ಲಿಸುವ ಮೊದಲು ಅಧಿಕೃತ ಸರ್ಕಾರಿ ಇಲಾಖೆಯಲ್ಲಿ ಪರಿಶೀಲಿಸಿ.",
+        results: "ಸಂಬಂಧಿಸಬಹುದಾದ ಯೋಜನೆಗಳು",
+        match: "ಸಾಧ್ಯವಾದ ಯೋಜನೆ",
+        matches: "ಸಾಧ್ಯವಾದ ಯೋಜನೆಗಳು",
+        none: "ಈ ಆಯ್ಕೆಗಳಿಗೆ ಮಾದರಿ ಯೋಜನೆಗಳು ಕಂಡುಬಂದಿಲ್ಲ. ಬೇರೆ ವರ್ಗ ಅಥವಾ ರಾಜ್ಯವನ್ನು ಆಯ್ಕೆಮಾಡಿ.",
+        allCategories: "ಎಲ್ಲಾ ವರ್ಗಗಳು",
+        notice: "ಇವು ಮಾದರಿ ಫಲಿತಾಂಶಗಳು ಮಾತ್ರ; ಅರ್ಹತೆಯ ನಿರ್ಧಾರವಲ್ಲ. ನಿಯಮಗಳನ್ನು ಖಚಿತಪಡಿಸಲು ಅಧಿಕೃತ ಇಲಾಖೆ ಅಥವಾ ಪೋರ್ಟಲ್ ಸಂಪರ್ಕಿಸಿ.",
+        categoryNames: { pension: "ಪಿಂಚಣಿ", healthcare: "ಆರೋಗ್ಯ ಸೇವೆ", housing: "ವಸತಿ", food: "ಆಹಾರ ಸಹಾಯ" }
+      }
+    };
+
+    const selectedCategories = new Set();
+    let currentLanguage = "en";
+
+    const form = document.querySelector("#scheme-form");
+    const results = document.querySelector("#results");
+    const categoryButtons = document.querySelectorAll("[data-category]");
+
+    function setLanguage(language) {
+      currentLanguage = language;
+      const words = translations[language];
+      document.documentElement.lang = language;
+
+      document.querySelectorAll("[data-text]").forEach((element) => {
+        const key = element.dataset.text;
+        element.textContent = words[key];
+      });
+
+      document.querySelectorAll("[data-language]").forEach((button) => {
+        button.setAttribute("aria-pressed", String(button.dataset.language === language));
+      });
+
+      // Update existing results too, so switching language does not clear the search.
+      if (results.dataset.searched === "true") showResults();
+    }
+
+    function showResults() {
+      const age = document.querySelector("#age").value;
+      const state = document.querySelector("#state").value;
+      const words = translations[currentLanguage];
+      const matchingSchemes = schemes.filter((scheme) => {
+        const categoryMatches = selectedCategories.size === 0 || selectedCategories.has(scheme.category);
+        const ageMatches = scheme.ages.includes(age);
+        const stateMatches = scheme.states.includes("all") || scheme.states.includes(state);
+        return categoryMatches && ageMatches && stateMatches;
+      });
+
+      results.dataset.searched = "true";
+      const countText = matchingSchemes.length === 1 ? words.match : words.matches;
+      const heading = `<div class="results-heading"><h2>${words.results}</h2><span class="result-count">${matchingSchemes.length} ${countText}</span></div>`;
+
+      if (matchingSchemes.length === 0) {
+        results.innerHTML = `${heading}<article class="scheme"><p>${words.none}</p></article>`;
+        return;
+      }
+
+      const cards = matchingSchemes.map((scheme) => `
+        <article class="scheme">
+          <h3>${scheme.name}</h3>
+          <p>${scheme.description}</p>
+          <span class="scheme-category">${words.categoryNames[scheme.category]}</span>
+        </article>
+      `).join("");
+
+      results.innerHTML = `${heading}<div class="scheme-list">${cards}</div><p class="notice">${words.notice}</p>`;
+    }
+
+    categoryButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        const category = button.dataset.category;
+        if (selectedCategories.has(category)) {
+          selectedCategories.delete(category);
+          button.setAttribute("aria-pressed", "false");
+        } else {
+          selectedCategories.add(category);
+          button.setAttribute("aria-pressed", "true");
+        }
+      });
+    });
+
+    document.querySelectorAll("[data-language]").forEach((button) => {
+      button.addEventListener("click", () => setLanguage(button.dataset.language));
+    });
+
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      showResults();
+    });
+  </script>
+</body>
+</html>
